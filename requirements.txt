@@ -3,6 +3,3 @@ google-generativeai
 streamlit
 matplotlib
 python-dotenv
-streamlit-webrtc
-opencv-python
-opencv-python-headless
