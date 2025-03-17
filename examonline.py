@@ -5,7 +5,6 @@ import google.generativeai as genai
 import streamlit as st
 import json
 import requests
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 
 import asyncio
 
@@ -198,7 +197,7 @@ def evaluate_answer(question, student_answer):
 def submit_test_results(mcq_score, subjective_evaluations, code_evaluations, email, test_id):
     """Submits the test results to the API."""
 
-    subjective_score = sum(eval.get('score', 0) for eval in subjective_evaluations.values()) /len(subjective_evaluations) if subjective_evaluations else 0
+    subjective_score = sum(eval.get('score', 0) for eval in subjective_evaluations.values()) / len(subjective_evaluations) if subjective_evaluations else 0
     coding_score= sum(eval.get('score', 0) for eval in code_evaluations.values()) / len(code_evaluations) if code_evaluations else 0
 
     try:
@@ -209,11 +208,6 @@ def submit_test_results(mcq_score, subjective_evaluations, code_evaluations, ema
 
     except requests.exceptions.RequestException as e:
         st.error(f"Error submitting test results: {e}")
-
-class VideoTransformer(VideoTransformerBase):
-    def transform(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-        return img
 
 st.title("AI-Powered MCQ, Subjective, and Coding Test")
 st.write("Click on Start Audio/Video recording first")
@@ -264,28 +258,39 @@ col1, col2 = st.columns([3, 1])
 if "GITHUB_ACTIONS" not in os.environ:
     with col2:
         if st.session_state.video_started:
-            def run_webrtc_with_loop():
-                try:
-                    loop = asyncio.get_event_loop()
-                except RuntimeError:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
+            try:
+                from streamlit_webrtc import webrtc_streamer, VideoTransformerBase #Lazy loading
 
-                async def webrtc_task():
+                class VideoTransformer(VideoTransformerBase):
+                    def transform(self, frame):
+                        img = frame.to_ndarray(format="bgr24")
+                        return img
+
+                def run_webrtc_with_loop():
                     try:
-                        webrtc_streamer(key="exam_video", video_transformer_factory=VideoTransformer)
+                        loop = asyncio.get_event_loop()
+                    except RuntimeError:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+
+                    async def webrtc_task():
+                        try:
+                            webrtc_streamer(key="exam_video", video_transformer_factory=VideoTransformer)
+                        except Exception as e:
+                            st.error(f"WebRTC Error: {e}")
+                            st.error(f"Error Details: {e.__class__.__name__}, {e}")
+                            st.error(f"Event Loop Status: {loop.is_running()}")
+
+                    try:
+                        loop.run_until_complete(webrtc_task())
                     except Exception as e:
-                        st.error(f"WebRTC Error: {e}")
-                        st.error(f"Error Details: {e.__class__.__name__}, {e}")
+                        st.error(f"Event Loop Error: {e}")
                         st.error(f"Event Loop Status: {loop.is_running()}")
 
-                try:
-                    loop.run_until_complete(webrtc_task())
-                except Exception as e:
-                    st.error(f"Event Loop Error: {e}")
-                    st.error(f"Event Loop Status: {loop.is_running()}")
+                run_webrtc_with_loop()
+            except ImportError:
+                st.error("streamlit_webrtc not installed. Install it to enable video.")
 
-            run_webrtc_with_loop()
 else:
     st.write("Running in GitHub Actions: WebRTC disabled.")
 
@@ -354,8 +359,8 @@ with col1:
                     st.session_state.subjective_evaluations[str(i)] = evaluation
 
             if st.session_state.code_questions:
-                for i, question in enumerate(st.session_state.code_questions):
-                    evaluation = evaluate_answer(question, st.session_state.codeanswers.get(str(i), ""))
+                fori, question in enumerate(st.session_state.code_questions):
+                    evaluation = evaluate_answer(question, st.session_state.code_answers.get(str(i), ""))
                     st.session_state.code_evaluations[str(i)] = evaluation
 
             st.session_state.exam_started = False
