@@ -4,3 +4,4 @@ streamlit
 matplotlib
 python-dotenv
 streamlit-webrtc
+opencv-python
