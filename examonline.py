@@ -6,7 +6,7 @@ import streamlit as st
 import json
 import requests
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
-
+import cv2
 import asyncio  # Import asyncio
 
 load_dotenv()
@@ -262,10 +262,21 @@ col1, col2 = st.columns([3, 1])
 
 with col2:
     if st.session_state.video_started:
-        try:
-            webrtc_streamer(key="exam_video", video_processor_factory=VideoTransformer)
-        except Exception as e:
-            st.error(f"Error starting camera: {e}")
+        async def run_webrtc():
+            try:
+                webrtc_streamer(key="exam_video", video_transformer_factory=VideoTransformer)
+            except Exception as e:
+                st.error(f"Error starting camera: {e}")
+
+        def run_webrtc_sync():
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            loop.run_until_complete(run_webrtc())
+
+        run_webrtc_sync() #run the webrtc stream using the managed event loop.
 
 with col1:
     if not st.session_state.exam_started and not st.session_state.evaluation_done:
@@ -306,8 +317,8 @@ with col1:
                 st.subheader(f"Question {i + 1}:")
                 st.write(question["question"])
                 student_answer = st.text_area(f"Your Answer (Question {i + 1})",
-                                                value=st.session_state.subjective_answers.get(str(i), ""),
-                                                key=f"subjective_answer_{i}")
+                                            value=st.session_state.subjective_answers.get(str(i), ""),
+                                            key=f"subjective_answer_{i}")
                 st.session_state.subjective_answers[str(i)] = student_answer
 
         st.subheader("Coding Questions")
@@ -316,8 +327,8 @@ with col1:
                 st.subheader(f"Coding Question {i + 1}:")
                 st.write(question["question"])
                 student_code = st.text_area(f"Your Code (Question {i + 1})",
-                                             value=st.session_state.code_answers.get(str(i), ""),
-                                             key=f"code_answer_{i}")
+                                           value=st.session_state.code_answers.get(str(i), ""),
+                                           key=f"code_answer_{i}")
                 st.session_state.code_answers[str(i)] = student_code
 
         if st.button("Submit All Tests"):
@@ -394,9 +405,9 @@ with col1:
 
         if email and test_id:
             submit_test_results(percentage,
-                                 st.session_state.subjective_evaluations,
-                                 st.session_state.code_evaluations,
-                                 email,
-                                 test_id)
+                                st.session_state.subjective_evaluations,
+                                st.session_state.code_evaluations,
+                                email,
+                                test_id)
         else:
             st.warning("Email and Test ID must be provided in the URL to submit results.")
