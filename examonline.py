@@ -260,30 +260,34 @@ if 'questions_generated' not in st.session_state:
 
 col1, col2 = st.columns([3, 1])
 
-with col2:
-    if st.session_state.video_started:
-        def run_webrtc_with_loop():
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            async def webrtc_task():
+# Check if running in GitHub Actions (headless environment)
+if "GITHUB_ACTIONS" not in os.environ:
+    with col2:
+        if st.session_state.video_started:
+            def run_webrtc_with_loop():
                 try:
-                    webrtc_streamer(key="exam_video", video_transformer_factory=VideoTransformer)
+                    loop = asyncio.get_event_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+
+                async def webrtc_task():
+                    try:
+                        webrtc_streamer(key="exam_video", video_transformer_factory=VideoTransformer)
+                    except Exception as e:
+                        st.error(f"WebRTC Error: {e}")
+                        st.error(f"Error Details: {e.__class__.__name__}, {e}")
+                        st.error(f"Event Loop Status: {loop.is_running()}")
+
+                try:
+                    loop.run_until_complete(webrtc_task())
                 except Exception as e:
-                    st.error(f"WebRTC Error: {e}")
-                    st.error(f"Error Details: {e.__class__.__name__}, {e}")
+                    st.error(f"Event Loop Error: {e}")
                     st.error(f"Event Loop Status: {loop.is_running()}")
 
-            try:
-                loop.run_until_complete(webrtc_task())
-            except Exception as e:
-                st.error(f"Event Loop Error: {e}")
-                st.error(f"Event Loop Status: {loop.is_running()}")
-
-        run_webrtc_with_loop()
+            run_webrtc_with_loop()
+else:
+    st.write("Running in GitHub Actions: WebRTC disabled.")
 
 with col1:
     if not st.session_state.exam_started and not st.session_state.evaluation_done:
@@ -351,7 +355,7 @@ with col1:
 
             if st.session_state.code_questions:
                 for i, question in enumerate(st.session_state.code_questions):
-                    evaluation = evaluate_answer(question, st.session_state.code_answers.get(str(i), ""))
+                    evaluation = evaluate_answer(question, st.session_state.codeanswers.get(str(i), ""))
                     st.session_state.code_evaluations[str(i)] = evaluation
 
             st.session_state.exam_started = False
