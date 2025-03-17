@@ -1,0 +1,5 @@
+langchain-google-genai
+google-generativeai
+streamlit
+matplotlib
+python-dotenv
