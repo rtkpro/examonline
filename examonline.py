@@ -7,6 +7,7 @@ import json
 import requests
 
 import asyncio
+import sys
 
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -287,7 +288,12 @@ if "GITHUB_ACTIONS" not in os.environ:
                         st.error(f"Event Loop Error: {e}")
                         st.error(f"Event Loop Status: {loop.is_running()}")
 
-                run_webrtc_with_loop()
+                try:
+                    run_webrtc_with_loop()
+                except Exception as top_level_error:
+                    st.error(f"Top-level WebRTC error: {top_level_error}")
+                    st.error(f"Error details: {sys.exc_info()}")
+
             except ImportError:
                 st.error("streamlit_webrtc not installed. Install it to enable video.")
 
