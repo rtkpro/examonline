@@ -6,7 +6,7 @@ import streamlit as st
 import json
 import requests
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
-import cv2
+
 import asyncio  # Import asyncio
 
 load_dotenv()
