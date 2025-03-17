@@ -262,26 +262,28 @@ col1, col2 = st.columns([3, 1])
 
 with col2:
     if st.session_state.video_started:
-        async def run_webrtc():
-            try:
-                webrtc_streamer(key="exam_video", video_transformer_factory=VideoTransformer)
-            except Exception as e:
-                st.error(f"Error starting camera: {e}")
-                st.error(f"Error Details: {e.__class__.__name__}, {e}")
-
-        def run_webrtc_sync():
+        def run_webrtc_with_loop():
             try:
                 loop = asyncio.get_event_loop()
             except RuntimeError:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-            try:
-                loop.run_until_complete(run_webrtc())
-            except Exception as e:
-                st.error(f"Error running webrtc within event loop: {e}")
-                st.error(f"Error Details: {e.__class__.__name__}, {e}")
 
-        run_webrtc_sync()
+            async def webrtc_task():
+                try:
+                    webrtc_streamer(key="exam_video", video_transformer_factory=VideoTransformer)
+                except Exception as e:
+                    st.error(f"WebRTC Error: {e}")
+                    st.error(f"Error Details: {e.__class__.__name__}, {e}")
+                    st.error(f"Event Loop Status: {loop.is_running()}")
+
+            try:
+                loop.run_until_complete(webrtc_task())
+            except Exception as e:
+                st.error(f"Event Loop Error: {e}")
+                st.error(f"Event Loop Status: {loop.is_running()}")
+
+        run_webrtc_with_loop()
 
 with col1:
     if not st.session_state.exam_started and not st.session_state.evaluation_done:
