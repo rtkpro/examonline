@@ -5,9 +5,7 @@ import google.generativeai as genai
 import streamlit as st
 import json
 import requests
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
-
-import asyncio  # Import asyncio
+import streamlit.components.v1 as components
 
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -210,10 +208,31 @@ def submit_test_results(mcq_score, subjective_evaluations, code_evaluations, ema
     except requests.exceptions.RequestException as e:
         st.error(f"Error submitting test results: {e}")
 
-class VideoTransformer(VideoTransformerBase):
-    def transform(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-        return img
+
+def camera_app():
+    camera_html = """
+    <script>
+    var video = document.createElement('video');
+    video.setAttribute('autoplay', '');
+    video.setAttribute('muted', '');
+    video.style.width = '100%';
+    video.style.height = 'auto';
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+    .then(function(stream) {
+        video.srcObject = stream;
+        document.body.appendChild(video); // Append to body so streamlit can see it.
+    })
+    .catch(function(error) {
+        console.error('Error accessing camera:', error);
+    });
+    </script>
+    """
+
+    components.html(camera_html, height=480)
+
+# if __name__ == "__main__":
+#     camera_app()
 
 st.title("AI-Powered MCQ, Subjective, and Coding Test")
 st.write("Click on Start Audio/Video recording first")
@@ -254,18 +273,23 @@ if 'code_evaluations' not in st.session_state:
 if 'evaluation_done' not in st.session_state:
     st.session_state.evaluation_done = False
 if 'video_started' not in st.session_state:
-    st.session_state.video_started = True  # Start video by default
+    st.session_state.video_started = False  # Start video by default
 if 'questions_generated' not in st.session_state:
     st.session_state.questions_generated = False # Track if questions have been generated.
 
 col1, col2 = st.columns([3, 1])
 
 with col2:
-    if st.session_state.video_started:
-        try:
-            webrtc_streamer(key="exam_video", video_processor_factory=VideoTransformer)
-        except Exception as e:
-            st.error(f"Error starting camera: {e}")
+    if not st.session_state.video_started:
+        if st.button("Start Camera"):
+            try:
+                camera_app()
+                st.session_state.video_started = True
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error starting camera: {e}")
+    else:
+        camera_app()
 
 with col1:
     if not st.session_state.exam_started and not st.session_state.evaluation_done:
