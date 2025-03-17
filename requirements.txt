@@ -3,3 +3,4 @@ google-generativeai
 streamlit
 matplotlib
 python-dotenv
+streamlit-webrtc
