@@ -359,7 +359,7 @@ with col1:
                     st.session_state.subjective_evaluations[str(i)] = evaluation
 
             if st.session_state.code_questions:
-                fori, question in enumerate(st.session_state.code_questions):
+                for i, question in enumerate(st.session_state.code_questions):
                     evaluation = evaluate_answer(question, st.session_state.code_answers.get(str(i), ""))
                     st.session_state.code_evaluations[str(i)] = evaluation
 
