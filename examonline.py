@@ -7,7 +7,7 @@ import json
 import requests
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 
-import asyncio  # Import asyncio
+import asyncio
 
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -254,9 +254,9 @@ if 'code_evaluations' not in st.session_state:
 if 'evaluation_done' not in st.session_state:
     st.session_state.evaluation_done = False
 if 'video_started' not in st.session_state:
-    st.session_state.video_started = True  # Start video by default
+    st.session_state.video_started = True
 if 'questions_generated' not in st.session_state:
-    st.session_state.questions_generated = False # Track if questions have been generated.
+    st.session_state.questions_generated = False
 
 col1, col2 = st.columns([3, 1])
 
@@ -267,6 +267,7 @@ with col2:
                 webrtc_streamer(key="exam_video", video_transformer_factory=VideoTransformer)
             except Exception as e:
                 st.error(f"Error starting camera: {e}")
+                st.error(f"Error Details: {e.__class__.__name__}, {e}")
 
         def run_webrtc_sync():
             try:
@@ -274,9 +275,13 @@ with col2:
             except RuntimeError:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-            loop.run_until_complete(run_webrtc())
+            try:
+                loop.run_until_complete(run_webrtc())
+            except Exception as e:
+                st.error(f"Error running webrtc within event loop: {e}")
+                st.error(f"Error Details: {e.__class__.__name__}, {e}")
 
-        run_webrtc_sync() #run the webrtc stream using the managed event loop.
+        run_webrtc_sync()
 
 with col1:
     if not st.session_state.exam_started and not st.session_state.evaluation_done:
@@ -288,8 +293,8 @@ with col1:
                 st.error("Failed to generate questions. Please try again.")
                 st.session_state.exam_started = False
                 st.stop()
-            st.session_state.questions_generated = True # Questions are now generated.
-            st.rerun() # Refresh to show questions immediately.
+            st.session_state.questions_generated = True
+            st.rerun()
 
     elif st.session_state.exam_started and st.session_state.questions_generated:
         st.subheader("MCQ Questions")
@@ -349,7 +354,7 @@ with col1:
 
             st.session_state.exam_started = False
             st.session_state.evaluation_done = True
-            st.session_state.video_started = False  # Stop video stream
+            st.session_state.video_started = False
             st.rerun()
 
     elif st.session_state.evaluation_done:
